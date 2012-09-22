@@ -15,9 +15,10 @@ import org.gradle.api.tasks.Exec
  * @since March 31, 2012
  */
 class GrailsPlugin implements Plugin<Project> {
-  
-  private void addTask(Project project, String target) {
-    Task task = project.task("grails-${target}") << {
+
+  private void addTask(Project project, String target, boolean wrap) {
+    String gradleTask = wrap ? "grails-$target"  : target;
+    Task task = project.task(gradleTask) << {
       project.grails.configure()
       String grailsFolder = makeGrailsPath(project.grails.version)
       String extension = SystemUtils.IS_OS_WINDOWS ? '.bat' : ''
@@ -29,7 +30,9 @@ class GrailsPlugin implements Plugin<Project> {
         plainOutput
       ]
       command.addAll(systemProperties.collect { "-D${it}" })
-      command.add(target)
+      if (!target.equals("gant-script")) {
+        command.add(target)
+      }
       command.addAll(args)
       Map<String, String> env = new HashMap(System.getenv())
       env['GRAILS_HOME'] = grailsFolder
@@ -108,6 +111,8 @@ class GrailsPlugin implements Plugin<Project> {
       'interactive',
       'list-plugin-updates',
       'list-plugins',
+      'maven-deploy',
+      'maven-install',
       'migrate-docs',
       'package',
       'package-plugin',
@@ -126,7 +131,9 @@ class GrailsPlugin implements Plugin<Project> {
       'uninstall-plugin',
       'upgrade',
       'war',
-    ].each { addTask(project, it) }
+    ].each { addTask(project, it, true) }
+
+    addTask(project, "gant-script", false)
   }
   
   private void build(Project project, String target) {
